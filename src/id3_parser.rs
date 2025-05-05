@@ -1,5 +1,5 @@
 use std::{
-    io,
+    env, io,
     process::{Command, Stdio},
 };
 
@@ -7,6 +7,8 @@ use log::{error, info, warn};
 use rdkafka::{message::BorrowedMessage, Message};
 use regex::Regex;
 use serde_json::Value;
+
+use crate::id3_producer::Id3Producer;
 
 pub struct Id3ParserCaller {
     pub path_parser: String,
@@ -19,7 +21,7 @@ impl Id3ParserCaller {
         }
     }
 
-    pub fn call_id3_parser(&self, msg: &BorrowedMessage) -> io::Result<()> {
+    pub async fn call_id3_parser<'a>(&self, msg: &'a BorrowedMessage<'a>) -> io::Result<()> {
         let start = std::time::Instant::now();
 
         let payload = msg.payload_view::<str>().unwrap_or(Ok("")).unwrap_or("");
@@ -63,11 +65,6 @@ impl Id3ParserCaller {
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No JSON block found"))?;
 
         let json_value: Value = serde_json::from_str(json_text).expect("Error parsing to JSON");
-        println!(
-            "Parsed JSON:\n{}",
-            serde_json::to_string_pretty(&json_value)
-                .expect("Something happened with the pretty print")
-        );
 
         let duration = start.elapsed();
         info!("ID3 parsing took: {:.2?}", duration);
@@ -75,6 +72,17 @@ impl Id3ParserCaller {
         if duration > std::time::Duration::from_secs(5) {
             warn!("Slow ID3 parsing detected");
         }
+
+        let broker = env::var("BROKER").expect("No BROKER variable found in the .env");
+        let produce_topic =
+            env::var("PRODUCE_TOPIC").expect("No PRODUCE_TOPIC variable found in the .env");
+        let id3_producer = Id3Producer::new(broker, produce_topic);
+        id3_producer
+            .produce(
+                serde_json::to_string_pretty(&json_value)
+                    .expect("Something happened with the pretty print"),
+            )
+            .await;
 
         Ok(())
     }

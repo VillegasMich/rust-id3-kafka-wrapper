@@ -29,7 +29,7 @@ impl Id3Consumer {
         println!("Consuming messages from topic {}", topic);
 
         let consumer: StreamConsumer = ClientConfig::new()
-            .set("group.id", "my-group")
+            .set("group.id", "rust-group")
             .set("bootstrap.servers", broker)
             .set("auto.offset.reset", "earliest")
             .create()
@@ -42,7 +42,7 @@ impl Id3Consumer {
         while let Some(message_result) = message_stream.next().await {
             match message_result {
                 Ok(message) => {
-                    let _ = self.parser.call_id3_parser(&message);
+                    let _ = self.parser.call_id3_parser(&message).await;
                 }
                 Err(e) => error!("Kafka error: {}", e),
             }

@@ -4,7 +4,6 @@ use rdkafka::{
     util::Timeout,
     ClientConfig,
 };
-use std::time::Duration;
 
 pub struct Id3Producer {
     pub broker: String,
@@ -16,27 +15,21 @@ impl Id3Producer {
         Self { broker, topic }
     }
 
-    pub async fn produce(&self) {
+    pub async fn produce(&self, message: String) {
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", &self.broker)
             .create()
             .expect("Producer creation error");
 
-        loop {
-            let topic = &self.topic;
-            let record = FutureRecord::to(topic)
-                .payload("~/Music/hiræth, Willix - Intranet Crush [NCS Release].mp3")
-                .key("key");
+        let topic = &self.topic;
+        let record = FutureRecord::to(topic).payload(&message).key("key");
 
-            match producer.send(record, Timeout::Never).await {
-                Ok(delivery) => {
-                    println!("Message produced");
-                    info!("Sent: {:?}", delivery);
-                }
-                Err((e, _)) => error!("Error sending message: {:?}", e),
+        match producer.send(record, Timeout::Never).await {
+            Ok(delivery) => {
+                println!("Message produced to topic: {}", &self.topic);
+                info!("Sent: {:?}", delivery);
             }
-
-            tokio::time::sleep(Duration::from_secs(30)).await;
+            Err((e, _)) => error!("Error sending message: {:?}", e),
         }
     }
 }

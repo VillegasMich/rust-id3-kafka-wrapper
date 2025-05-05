@@ -17,6 +17,6 @@ This project is a Rust-based Kafka consumer-producer wrapper for an ID3 metadata
 ## 🏗️ Architecture
 
 ```text
-Kafka Topic (consume) ───▶ [Id3Consumer] ───▶ [ID3 Parser CLI] ───▶ [Id3Producer] ───▶ Kafka Topic (produce)
+Kafka Topic (CONSUME_TOPIC) ───▶ [Id3Consumer] ───▶ [ID3 Parser CLI] ───▶ [Id3Producer] ───▶ Kafka Topic (PRODUCE_TOPIC)
 
 ```
